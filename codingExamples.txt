@@ -1,0 +1,5 @@
+
+
+# to take a video and extract 1 frame per 25 
+# creates a numbered set of images
+ffmpeg -i PB200639.MOV -b 3000k -vcodec mjpeg -r 1 -f image2 /tmp/output/%d.jpg
