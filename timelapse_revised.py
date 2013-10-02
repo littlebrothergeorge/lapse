@@ -64,28 +64,29 @@ class goProTimelapse2AVI:
                         if folder == "":
                             folder = "movie"
 
-                        videoNameAVI =  folder  +".avi"
+                        videoNameAVI =  folder  +".mp4"
                         video = os.path.join(directory,videoNameAVI)
                         print "\nCreating video " + video
                         createdClips += "'" +video + "' "
                         
                         # now its time to create the video 
                         self.createMovieParts(directory,videoNameAVI)
-                        
-                    # now join all the clips together    
-                    tmpAvi = os.path.join(directory,"tmp.avi")
-                    join = "cat " + createdClips + " > '" + tmpAvi + "'"
-                    reindex = "mencoder '" + tmpAvi + "' -o '" + os.path.join(directory,"movieComplete.avi") + "' -forceidx -ovc copy -oac copy"
-                    if  (self.askToJoin()):
-                        print join
-                        os.chdir(directory) 
-                        subprocess.call(join, shell=True)
-                        subprocess.call(reindex , shell=True)                    
-                        os.remove(tmpAvi);
-                    else:
-                        print "Ok to do the join latter here are the commands"
-                        print join
-                        print reindex
+                    
+                    if (len(createdClips) > 1):   
+                        # now join all the clips together    
+                        tmpVideo = os.path.join(directory,"tmp.avi")
+                        join = "cat " + createdClips + " > '" + tmpVideo + "'"
+                        reindex = "mencoder '" + tmpVideo + "' -o '" + os.path.join(directory,"movieComplete.avi") + "' -forceidx -ovc copy -oac copy"
+                        if  (self.askToJoin()):
+                            print join
+                            os.chdir(directory) 
+                            subprocess.call(join, shell=True)
+                            subprocess.call(reindex , shell=True)                    
+                            os.remove(tmpVideo);
+                        else:
+                            print "Ok to do the join latter here are the commands"
+                            print join
+                            print reindex
                     
                     print "\ndone..\n"
                 else:
@@ -94,25 +95,26 @@ class goProTimelapse2AVI:
         else:
                 print "\n  usage: python goProTimelapse2AVI.py  ~/Desktop/\n"
     
-    def createMovieParts(self,directory,videoNameAVI):
+    def createMovieParts(self,directory,videoName):
             
-            pathAndFileAsAVI = os.path.join(directory,videoNameAVI)
-            if not os.path.exists(pathAndFileAsAVI):
-                print "Will create " + pathAndFileAsAVI                
+            pathAndFile = os.path.join(directory,videoName)
+            if not os.path.exists(pathAndFile):
+                print "Will create " + pathAndFile                
             else:
-                if(self.askToDelete(pathAndFileAsAVI)):
-                    os.remove(pathAndFileAsAVI);
+                if(self.askToDelete(pathAndFile)):
+                    os.remove(pathAndFile);
                 else:
-                    print "Not overwriting " + pathAndFileAsAVI
+                    print "Not overwriting " + pathAndFile
                     return
 
             # http://rodrigopolo.com/ffmpeg/cheats.html
-            self.makeFFmpegMovie(pathAndFileAsAVI)
-            #self.makeMencoderMovie(pathAndFileAsAVI)
+            # http://electron.mit.edu/~gsteele/ffmpeg/
+            self.makeFFmpegMovie(pathAndFile)
+            #elf.makeMencoderMovie(pathAndFile)
                 
     def makeFFmpegMovie(self,outputFile):
 
-        filename = 'output.mp4'
+        
         width = 1920
         height = 1080
         quality = 50 # The quality factor can vary between 40 and 60 to trade quality for size
@@ -133,10 +135,11 @@ class goProTimelapse2AVI:
         #makeMovieCommand = "ffmpeg  -loglevel verbose  -i %05d.jpg -vb 6400k -vcodec libx264 -s hd1080 -v 0 \
         #-flags +loop -cmp +chroma -partitions +parti4x4+partp8x8+partb8x8 -subq 5 -me_range 16 \
         #-g 250 -keyint_min 25 -sc_threshold 40 -i_qfactor 0.71 '" + outputFile + "'"
+
         options = '-s ' + str(width) + 'x' + str(height) + ' -aspect 16:9 -r 30000/1001 -b ' + str(optimal_bitrate) + ' -bt 4M -vcodec libx264'
 
-        makeMovieCommand = " ffmpeg -i %05d.jpg " + options + " -pass 1 -preset medium -an -ss 0 " + filename + " && \
-         ffmpeg -y -i %05d.jpg " + options + "  -pass 2 -preset slow -acodec libfaac -ac 2 -ar 44100 -ab 128k -ss 0 " + filename 
+        makeMovieCommand = " ffmpeg -i %05d.jpg " + options + " -pass 1 -preset medium -an -ss 0 " + outputFile + " && \
+         ffmpeg -y -i %05d.jpg " + options + "  -pass 2 -preset slow -acodec libfaac -ac 2 -ar 44100 -ab 128k -ss 0 " + outputFile 
 
         # for olympus om-d
         #makeMovieCommand = "ffmpeg -loglevel verbose  -i  %05d.jpg -r 25 -vcodec libx264 -s hd1080 '" + outputFile + "'"
