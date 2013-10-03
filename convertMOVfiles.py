@@ -18,7 +18,7 @@ if (len(sys.argv) > 1):
 			if not os.path.exists(fAsAVI):
 				fullpath = os.path.join(root, f)
 				print "will create " + fAsAVI
-				p = subprocess.call("ffmpeg -i '" + fullpath + "' -b 3000k -vcodec mjpeg  -flags +loop -cmp +chroma -partitions +parti4x4+partp8x8+partb8x8 -subq 5 -me_range 16 -g 250 -keyint_min 25 -sc_threshold 40 -i_qfactor 0.71 '" + fAsAVI + "'", shell=True)
+				#p = subprocess.call("ffmpeg -i '" + fullpath + "' -b 3000k -vcodec mjpeg  -flags +loop -cmp +chroma -partitions +parti4x4+partp8x8+partb8x8 -subq 5 -me_range 16 -g 250 -keyint_min 25 -sc_threshold 40 -i_qfactor 0.71 '" + fAsAVI + "'", shell=True)
 				#p.wait()
 				#os.system("ls -la '" + fullpath + "'")
 			else:

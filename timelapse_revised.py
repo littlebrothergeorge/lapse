@@ -1,20 +1,13 @@
 #!/usr/bin/python
 """
-Just a small script that renames all the JPEG files
-in a folder as 0.jpg, 1.jpg etc. Initial order
-is retained.
 
-
-Note that this has possible error conditions that
-are not handled at all:
-- what if the folder has files already numbered?
-- while renaming, it fails if the target file exists
 """
 import glob
 #import string
 import os, sys,  subprocess
+from encoder_functions import encoder_functions
 
-class goProTimelapse2AVI:
+class timelapse_revised:
     
     confirmSuccessful = False
     
@@ -54,10 +47,9 @@ class goProTimelapse2AVI:
                             if self.confirmSuccessful:  
                                 self.renameFiles()
                                 
-                    createdClips = ""
-                    singleFile = False # will there be many file needing stitching
+                    createdClips = []
+
                     # now its time to create the videos
-                    # http://mariovalle.name/mencoder/mencoder.html
                     for folder in directoryFolders:
                         
                         os.chdir(os.path.join(directory, folder))
@@ -67,15 +59,18 @@ class goProTimelapse2AVI:
                         videoNameAVI =  folder  +".mp4"
                         video = os.path.join(directory,videoNameAVI)
                         print "\nCreating video " + video
-                        createdClips += "'" +video + "' "
+                        createdClips.append(video)
                         
                         # now its time to create the video 
                         self.createMovieParts(directory,videoNameAVI)
                     
                     if (len(createdClips) > 1):   
                         # now join all the clips together    
-                        tmpVideo = os.path.join(directory,"tmp.avi")
-                        join = "cat " + createdClips + " > '" + tmpVideo + "'"
+                        tmpVideo = os.path.join(directory,"tmp.mp4")
+                        alltheVideos = ""
+                        for elem in createdClips:
+                            alltheVideos += ' %s ' % str(elem)
+                        join = "cat " + alltheVideos + " > '" + tmpVideo + "'"
                         reindex = "mencoder '" + tmpVideo + "' -o '" + os.path.join(directory,"movieComplete.avi") + "' -forceidx -ovc copy -oac copy"
                         if  (self.askToJoin()):
                             print join
@@ -108,100 +103,11 @@ class goProTimelapse2AVI:
                     return
 
             # http://rodrigopolo.com/ffmpeg/cheats.html
+            # http://mariovalle.name/mencoder/mencoder.html
             # http://electron.mit.edu/~gsteele/ffmpeg/
-            self.makeFFmpegMovie(pathAndFile)
-            #elf.makeMencoderMovie(pathAndFile)
-                
-    def makeFFmpegMovie(self,outputFile):
+            encoder_functions().makeFFmpegMovieFromFiles(pathAndFile)
+            #encoder_functions().makeMencoderMovieFromFiles(pathAndFile)
 
-        
-        width = 1920
-        height = 1080
-        quality = 50 # The quality factor can vary between 40 and 60 to trade quality for size
-        # the 50 factor can vary between 40 and 60
-        #
-        optimal_bitrate =  width * height* quality * 25 / 256
-
-        ######################################################
-        ## online ffmpeg creator
-        ##  http://rodrigopolo.com/ffmpeg/
-        ######################################################
-
-        # list all possible internal presets/tunes for FFmpeg by specifying no preset or tune option at all:
-        # ffmpeg -i input -c:v libx264 -preset -tune dummy.mp4
-
-        
-        # for gopro videos
-        #makeMovieCommand = "ffmpeg  -loglevel verbose  -i %05d.jpg -vb 6400k -vcodec libx264 -s hd1080 -v 0 \
-        #-flags +loop -cmp +chroma -partitions +parti4x4+partp8x8+partb8x8 -subq 5 -me_range 16 \
-        #-g 250 -keyint_min 25 -sc_threshold 40 -i_qfactor 0.71 '" + outputFile + "'"
-
-        options = '-s ' + str(width) + 'x' + str(height) + ' -aspect 16:9 -r 30000/1001 -b ' + str(optimal_bitrate) + ' -bt 4M -vcodec libx264'
-
-        makeMovieCommand = " ffmpeg -i %05d.jpg " + options + " -pass 1 -preset medium -an -ss 0 " + outputFile + " && \
-         ffmpeg -y -i %05d.jpg " + options + "  -pass 2 -preset slow -acodec libfaac -ac 2 -ar 44100 -ab 128k -ss 0 " + outputFile 
-
-        # for olympus om-d
-        #makeMovieCommand = "ffmpeg -loglevel verbose  -i  %05d.jpg -r 25 -vcodec libx264 -s hd1080 '" + outputFile + "'"
-
-        #High quality 2 Pass
-
-        #makeMovieCommand = "ffmpeg  -i %05d.jpg -vb 6400k -vcodec libx264 -pass 1 -vpre medium -an output.mp4 "\
-        #                "&& ffmpeg  -loglevel verbose  -i %05d.jpg -vb 6400k -vcodec libx264 -pass 2 -vpre hq -acodec libfaac -ac 2 -ar 48000 -ab 192k output.mp4 "
-
-
-        #ffmpeg -y -i INPUT -r 30000/1001 -b 2M -bt 4M -vcodec libx264 -pass 1 -vpre fastfirstpass -an output.mp4
-        #ffmpeg -y -i INPUT -r 30000/1001 -b 2M -bt 4M -vcodec libx264 -pass 2 -vpre hq -acodec libfaac -ac 2 -ar 48000 -ab 192k output.mp4
-
-        
-
-
-        print makeMovieCommand
-        subprocess.call(makeMovieCommand, shell=True)
-                
-            
-    def makeMencoderMovie(self,outputFile):
-        # http://mariovalle.name/mencoder/mencoder.html
-        # see mencoder on desktop      
-        
-        # def optimal_bitrate = quality * 25 * width * height / 256
-        # ffmpeg -y -i %d.jpg -r 12 -s hd720 -vcodec ffv1 movie.avi
-        width = 1920
-        height = 1024
-        quality = 60 # The quality factor can vary between 40 and 60 to trade quality for size
-        # compute the optimal bitrate 
-        #	br = 50 * 25 * width * height / 256
-        #
-        # the 50 factor can vary between 40 and 60
-        #
-        optimal_bitrate =  width * height* quality * 25 / 256
-        
-        #
-        # set the MPEG4 codec options
-        #	you have to experiment!
-        #
-        opt ="vbitrate=" + str(optimal_bitrate) + ":mbd=2:keyint=132:v4mv:vqmin=3:lumi_mask=0.07:dark_mask=0.2:scplx_mask=0.1:tcplx_mask=0.1:naq:trell"
-        codec="mpeg4"
-        
-        #
-        # set the Microsoft MPEG4 V2 codec options
-        #
-        #opt="vbitrate=$obr:mbd=2:keyint=132:vqblur=1.0:cmp=2:subcmp=2:dia=2:mv0:last_pred=3"
-        #codec="msmpeg4v2"
-        
-        #
-        # clean temporary files that can interfere with the compression phase        #        
-        subprocess.call("rm -f divx2pass.log frameno.avi", shell=True)
-        
-        # first pass
-        makeMovieCommand = "mencoder -ovc lavc -lavcopts vcodec=" + codec + ":vpass=1:" + opt + " -mf type=jpg:w=" + str(width) + ":h=" + str(height) + ":fps=25 -nosound -o /dev/null mf://" + os.getcwd() + "/\*.jpg"
-        subprocess.call(makeMovieCommand, shell=True)
-        
-        # second pass
-        makeMovieCommand = "mencoder  -ovc lavc -lavcopts vcodec=" + codec +  ":vpass=2:" + opt + " -mf type=jpg:w=" + str(width) + ":h=" + str(height) + ":fps=25 -nosound -o " +  outputFile + " mf://" + os.getcwd() + "/\*.jpg"
-        subprocess.call(makeMovieCommand, shell=True)
-        
-        
     def renameFiles(self):
         #get all the jpg file names in the current folder
         files = glob.glob("*.JPG") 
@@ -263,6 +169,6 @@ class goProTimelapse2AVI:
               print 'Please enter y or n.'
 
 if __name__=="__main__":
-    goProTimelapse2AVI(sys.argv)
+    timelapse_revised(sys.argv)
 
 
