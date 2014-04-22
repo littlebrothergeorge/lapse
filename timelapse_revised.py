@@ -10,6 +10,7 @@ from encoder_functions import encoder_functions
 class timelapse_revised:
     
     confirmSuccessful = False
+    symlinkFolder = 'symlinks'
     
     def __init__(self,sysArgs):
         
@@ -54,15 +55,14 @@ class timelapse_revised:
                         
                         os.chdir(os.path.join(directory, folder))
                         if folder == "":
-                            folder = "movie"
+                            folder = directory
 
-                        videoNameAVI =  folder  +".mp4"
+                        videoNameAVI =  folder  + "-" + directory + ".mp4"
                         video = os.path.join(directory,videoNameAVI)
-                        print "\nCreating video " + video
-                        createdClips.append(video)
                         
                         # now its time to create the video 
                         self.createMovieParts(directory,videoNameAVI)
+                        createdClips.append(video)
                     
                     if (len(createdClips) > 1):   
                         # now join all the clips together    
@@ -88,7 +88,7 @@ class timelapse_revised:
                     print "directory does not exist"
 
         else:
-                print "\n  usage: python goProTimelapse2AVI.py  ~/Desktop/\n"
+                print "\n  usage: python goProTimelapse2AVI.py  /path/to/files/\n"
     
     def createMovieParts(self,directory,videoName):
             

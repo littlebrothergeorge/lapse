@@ -34,7 +34,7 @@ class encoder_functions:
         
         # for gopro videos
         #makeMovieCommand = "ffmpeg  -loglevel verbose  -i %05d.jpg -vb 6400k -vcodec libx264 -s hd1080 -v 0 \
-        #-flags +loop -cmp +chroma -partitions +parti4x4+partp8x8+partb8x8 -subq 5 -me_range 16 \
+        #-flags +loop  -partitions +parti4x4+partp8x8+partb8x8 -subq 5 -me_range 16 \
         #-g 250 -keyint_min 25 -sc_threshold 40 -i_qfactor 0.71 '" + outputFile + "'"
 
         options = '-s ' + str(width) + 'x' + str(height) + ' -aspect 16:9 -r 30000/1001 -b ' + str(optimal_bitrate) + ' -bt 4M -vcodec libx264'
