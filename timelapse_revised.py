@@ -2,152 +2,171 @@
 """
 
 """
-import glob
-#import string
-import os, sys,  subprocess
+import glob, os, sys, subprocess, shutil
 from encoder_functions import encoder_functions
 
 class timelapse_revised:
     
-    confirmSuccessful = False
+    videoExtension = ".mp4"
     symlinkFolder = 'symlinks'
+    ignoreFolders = [symlinkFolder,'raw','render']
+    movieParts = []
+    directory = ""
+
     
     def __init__(self,sysArgs):
         
         if (len(sysArgs) > 1):
-                directory = sysArgs[1]
-                directory = directory.strip()
-                if directory[0] == "'" and directory[-1] == "'":
-                    directory = directory[1:-1]
-                if os.path.isdir(directory):
-                    os.chdir(directory) 
-                    print "\n\nChecking: " + directory
+            self.directory = sysArgs[1]
+            self.directory = self.directory.strip()
+            if self.directory[0] == "'" and self.directory[-1] == "'":
+                self.directory = self.directory[1:-1]
+            if os.path.isdir(self.directory):
+                os.chdir(self.directory) 
+                print "\n\nChecking: " + self.directory
+                
+                # first level of directories
+                self.directoryFolders = [d for d in os.listdir(self.directory) if os.path.isdir(d) and d not in self.ignoreFolders]
+                #sort the folders
+                self.directoryFolders.sort() 
+                if len(self.insensitive_glob("*.JPG")) > 0:                
+                    self.directoryFolders.append("") # the parent self.directory
+                
+                # Create the symlink directories 
+                for folder in self.directoryFolders:
+                    path = os.path.join(self.directory, folder)
+                    symlinkPath = os.path.join(path, self.symlinkFolder)
                     
-                    # first level of directories
-                    directoryFolders = [d for d in os.listdir(directory) if os.path.isdir(d)]
-                    #sort the folders
-                    directoryFolders.sort() 
-                    for folder in directoryFolders:
-                            print folder
-                    if len(directoryFolders) == 0:
-                        print directory                    
-                        directoryFolders.append("") # this parent directory
-                        
-                    for folder  in directoryFolders:
-                        path = os.path.join(directory, folder)
-                        print "\nChecking " + path
-                        os.chdir(path)
-                        #print os.listdir(path).sort()
-                        # if numbereing already done
-                        if os.path.exists(os.path.join(path,'00001.jpg')):
-                            print 'Found numbered files in "'+ path + '"'
-                        else:
-                            # and rename each file                                
-                            if not self.confirmSuccessful:                                
-                                self.doConfirm() 
-                            if self.confirmSuccessful:  
-                                self.renameFiles()
-                                
-                    createdClips = []
+                    if os.path.exists(os.path.join(symlinkPath,'00001.jpg')):
+                        print 'Found numbered files in "'+ symlinkPath + '"'
+                    else: 
+                        self.createSymlinks(symlinkPath)
+                            
+                createdClips = []
 
-                    # now its time to create the videos
-                    for folder in directoryFolders:
-                        
-                        os.chdir(os.path.join(directory, folder))
-                        if folder == "":
-                            folder = directory
+                # List up the videos
+                for folder in self.directoryFolders:
+                    if folder == "":
+                        folder = os.path.split(os.path.dirname(self.directory))[1]
 
-                        videoNameAVI =  folder  + "-" + directory + ".mp4"
-                        video = os.path.join(directory,videoNameAVI)
-                        
-                        # now its time to create the video 
-                        self.createMovieParts(directory,videoNameAVI)
-                        createdClips.append(video)
+                    videoName =  folder + self.videoExtension
+                    video = os.path.join(self.directory,videoName)
+                    print "handling video " + video
+                    #os.chdir(os.path.join(self.directory, folder))
                     
-                    if (len(createdClips) > 1):   
-                        # now join all the clips together    
-                        tmpVideo = os.path.join(directory,"tmp.mp4")
-                        alltheVideos = ""
-                        for elem in createdClips:
-                            alltheVideos += ' %s ' % str(elem)
-                        join = "cat " + alltheVideos + " > '" + tmpVideo + "'"
-                        reindex = "mencoder '" + tmpVideo + "' -o '" + os.path.join(directory,"movieComplete.avi") + "' -forceidx -ovc copy -oac copy"
-                        if  (self.askToJoin()):
-                            print join
-                            os.chdir(directory) 
-                            subprocess.call(join, shell=True)
-                            subprocess.call(reindex , shell=True)                    
-                            os.remove(tmpVideo);
-                        else:
-                            print "Ok to do the join latter here are the commands"
-                            print join
-                            print reindex
-                    
-                    print "\ndone..\n"
-                else:
-                    print "directory does not exist"
+                    self.movieParts.append({'video':video,'folder':os.path.join(self.directory, folder)})
+                    createdClips.append(video)
+
+                # Create the videos
+                self.createMovieParts()
+
+
+                # Join all videos together
+                if (len(createdClips) > 1):   
+
+                    tmpVideo = os.path.join(self.directory,os.path.split(os.path.dirname(self.directory))[1] + "-tmp" + self.videoExtension)
+                    alltheVideos = ""
+                    for elem in createdClips:
+                        alltheVideos += ' %s ' % str(elem)
+                    join = "cat " + alltheVideos + " > '" + tmpVideo + "'"
+                    finalVideo = os.path.join(self.directory,"movieComplete"+ self.videoExtension) 
+                    reindex = "mencoder '" + tmpVideo + "' -o '" + finalVideo + "' -forceidx -ovc copy -oac copy"
+
+                    # now join all the clips together    
+                    if  (self.askToJoin()):
+
+                        os.chdir(self.directory) 
+                        subprocess.call(join, shell=True)
+                        subprocess.call(reindex , shell=True)                    
+                        os.remove(tmpVideo);
+                        print "\ndone.. " +  finalVideo + "\n"
+
+                    else:
+                        print "\n\nOk to do the join latter.\nHere are the commands:\n-----------------------------------------\n"
+                        print join
+                        print reindex
+                        print "\n\n"
+                
+                
+            else:
+                print "self.directory does not exist"
 
         else:
-                print "\n  usage: python goProTimelapse2AVI.py  /path/to/files/\n"
+            print "\n  usage: python goProTimelapse2AVI.py  /path/to/files/\n"
     
-    def createMovieParts(self,directory,videoName):
-            
-            pathAndFile = os.path.join(directory,videoName)
-            if not os.path.exists(pathAndFile):
-                print "Will create " + pathAndFile                
+    def createMovieParts(self):
+
+        listToRender = []
+
+        for destFile in self.movieParts:
+            render = True
+            if not os.path.exists(destFile['video']):
+                print "Will create " + destFile['video']               
             else:
-                if(self.askToDelete(pathAndFile)):
-                    os.remove(pathAndFile);
+                if(self.askToDelete(destFile['video'])):
+                    os.remove(destFile['video']);
                 else:
-                    print "Not overwriting " + pathAndFile
-                    return
+                    print "Not overwriting " + destFile['video']
+                    render = False
 
-            # http://rodrigopolo.com/ffmpeg/cheats.html
-            # http://mariovalle.name/mencoder/mencoder.html
-            # http://electron.mit.edu/~gsteele/ffmpeg/
-            encoder_functions().makeFFmpegMovieFromFiles(pathAndFile)
-            #encoder_functions().makeMencoderMovieFromFiles(pathAndFile)
+            if render:
+                listToRender.append(destFile)
 
-    def renameFiles(self):
+        for selected in listToRender:
+            sourceSymlinks = os.path.join(os.path.dirname(selected['folder']), self.symlinkFolder)
+            encoder_functions().makeFFmpegMovieFromFiles(sourceSymlinks,selected['video'])
+
+
+    def createSymlinks(self,symlinkPath):
+        
+        if not os.path.exists(symlinkPath):
+            print "Creating symlinkFolder " + symlinkPath
+        else:
+            shutil.rmtree(symlinkPath)
+        
+        try:
+            print "\nPopulating symlink folder " + symlinkPath
+            os.makedirs(symlinkPath)
+        except:
+            print "ERROR:!!! couldnt create symlinks folder, check permissions"
+            sys.exit()
+
+        os.chdir(symlinkPath)
+        os.chdir('..')
+
         #get all the jpg file names in the current folder
-        files = glob.glob("*.JPG") 
-        #files = glob.glob("*.jpg") 
-        #sort the list
+        files = self.insensitive_glob("*.JPG") 
         files.sort()
-        count = 0
-        # and rename each file
-        for f in files:
-            count = count + 1
-            n = str.zfill(str(count),5) + ".jpg"
-            #n = str(count)+ ".jpg"
-            print f + " => " + n 
-            try:
-                os.rename(f, n)
-                #pass
-            except:
-                print "error: couldnt rename, check permissions"
-                sys.exit()
 
+        count = 0
+        # Create symlink to each file
+        for f in files:
+            count += 1
+            n = str.zfill(str(count),5) + ".jpg"
     
-    def doConfirm(self):
-        if(self.confirm("\n   Are you sure? Rename all un-numbered jpg's in the above directories?", allow_empty=True)):
-            self.confirmSuccessful = True
-            return True
+            os.symlink(
+                os.path.join(os.getcwd(),f),
+                os.path.join(self.symlinkFolder,n)
+            )
+    
             
     def askToDelete(self,filename):
-        if(self.confirm("\n   File " + filename + " Delete the file?", allow_empty=True)):            
+        if(self.confirm("\n   File " + filename + " Delete the file?", allow_empty=True)):   
             return True
         else:
             return False
+
+    def insensitive_glob(self, pattern):
+        def either(c):
+            return '[%s%s]'%(c.lower(),c.upper()) if c.isalpha() else c
+        return glob.glob(''.join(map(either,pattern)))
             
     def askToJoin(self):
-        """if(self.confirm("\n   Stitch up the files?", allow_empty=True)):            
+        if(self.confirm("\n   Stitch up the files?", allow_empty=True)):            
             return True
         else:
             return False
-        """
-        return True
-            
+        
     
     def confirm(self,prompt_str="Confirm", allow_empty=False, default=False):
       fmt = (prompt_str, 'y', 'n') if default else (prompt_str, 'n', 'y')

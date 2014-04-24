@@ -8,52 +8,58 @@ import os, sys,  subprocess
 
 class encoder_functions:
     
-    def ffmpeg(self,input,outputFile):
+    # def ffmpeg(self,input,outputFile):
 
-        if (len(input) == 0):
-            input = " %05d.jpg "
-        else:
-            input = "'" + input + "'"
+    #     if (len(input) == 0):
+    #         input = " %05d.jpg "
+    #     else:
+    #         input = "'" + input + "'"
 
 
-        width = 1920
-        height = 1080
-        quality = 50 # The quality factor can vary between 40 and 60 to trade quality for size
-        # the 50 factor can vary between 40 and 60
-        #
-        optimal_bitrate =  width * height* quality * 25 / 256
+    #     width = 1920
+    #     height = 1080
+    #     quality = 50 # The quality factor can vary between 40 and 60 to trade quality for size
+    #     # the 50 factor can vary between 40 and 60
+    #     #
+    #     optimal_bitrate =  width * height* quality * 25 / 256
 
-        ######################################################
-        ## online ffmpeg creator
-        ##  http://rodrigopolo.com/ffmpeg/
-        ######################################################
+    #     ######################################################
+    #     ## online ffmpeg creator
+    #     ##  http://rodrigopolo.com/ffmpeg/
+    #     # http://rodrigopolo.com/ffmpeg/cheats.html
+    #     # http://mariovalle.name/mencoder/mencoder.html
+    #     # http://electron.mit.edu/~gsteele/ffmpeg/
+    #     ######################################################
 
-        # list all possible internal presets/tunes for FFmpeg by specifying no preset or tune option at all:
-        # ffmpeg -i input -c:v libx264 -preset -tune dummy.mp4
+    #     # list all possible internal presets/tunes for FFmpeg by specifying no preset or tune option at all:
+    #     # ffmpeg -i input -c:v libx264 -preset -tune dummy.mp4
 
         
-        # for gopro videos
-        #makeMovieCommand = "ffmpeg  -loglevel verbose  -i %05d.jpg -vb 6400k -vcodec libx264 -s hd1080 -v 0 \
-        #-flags +loop  -partitions +parti4x4+partp8x8+partb8x8 -subq 5 -me_range 16 \
-        #-g 250 -keyint_min 25 -sc_threshold 40 -i_qfactor 0.71 '" + outputFile + "'"
+    #     # for gopro videos
+    #     #makeMovieCommand = "ffmpeg  -loglevel verbose  -i %05d.jpg -vb 6400k -vcodec libx264 -s hd1080 -v 0 \
+    #     #-flags +loop  -partitions +parti4x4+partp8x8+partb8x8 -subq 5 -me_range 16 \
+    #     #-g 250 -keyint_min 25 -sc_threshold 40 -i_qfactor 0.71 '" + outputFile + "'"
 
-        options = '-s ' + str(width) + 'x' + str(height) + ' -aspect 16:9 -r 30000/1001 -b ' + str(optimal_bitrate) + ' -bt 4M -vcodec libx264'
+    #     options = '-s ' + str(width) + 'x' + str(height) + ' -aspect 16:9 -r 30000/1001 -b ' + str(optimal_bitrate) + ' -bt 4M -vcodec libx264'
 
-        makeMovieCommand = " ffmpeg -i " + input + " " + options + " -pass 1 -preset medium -an -ss 0 '" + outputFile + "' && \
-          ffmpeg -y -i " + input + " " + options + "  -pass 2 -preset slow -acodec libfaac -ac 2 -ar 44100 -ab 128k -ss 0 '" + outputFile + "'"
+    #     makeMovieCommand = " ffmpeg -i " + input + " " + options + " -pass 1 -preset medium -an -ss 0 '" + outputFile + "' && \
+    #       ffmpeg -y -i " + input + " " + options + "  -pass 2 -preset slow -acodec libfaac -ac 2 -ar 44100 -ab 128k -ss 0 '" + outputFile + "'"
         
 
-        print makeMovieCommand
+    #     print makeMovieCommand
         
-        subprocess.call(makeMovieCommand, shell=True)
+    #     subprocess.call(makeMovieCommand, shell=True)
 
                 
-    def makeFFmpegMovieFromFiles(self,outputFile):
+    # def makeFFmpegMovieFromFiles(self,inputFolder,outputFile):
 
-        self.ffmpeg(null,outputFile) 
+    #     os.chdir(inputFolder)
+    #     self.ffmpeg(null,outputFile) 
 
-    def makeFFmpegMovieFromFiles(self,outputFile):
+    def makeFFmpegMovieFromFiles(self,inputFolder,outputFile):
 
+        os.chdir(inputFolder)
+        print "\n\nRendering all the files in " + inputFolder + "\n"
         
         width = 1920
         height = 1080
@@ -72,14 +78,14 @@ class encoder_functions:
 
         
         # for gopro videos
-        #makeMovieCommand = "ffmpeg  -loglevel verbose  -i %05d.jpg -vb 6400k -vcodec libx264 -s hd1080 -v 0 \
+        #makeMovieCommand = "ffmpeg  -loglevel quiet  -i %05d.jpg -vb 6400k -vcodec libx264 -s hd1080 -v 0 \
         #-flags +loop -cmp +chroma -partitions +parti4x4+partp8x8+partb8x8 -subq 5 -me_range 16 \
         #-g 250 -keyint_min 25 -sc_threshold 40 -i_qfactor 0.71 '" + outputFile + "'"
 
-        options = '-s ' + str(width) + 'x' + str(height) + ' -aspect 16:9 -r 30000/1001 -b ' + str(optimal_bitrate) + ' -bt 4M -vcodec libx264'
+        options = '-y -i %05d.jpg -s ' + str(width) + 'x' + str(height) + ' -loglevel quiet -aspect 16:9 -r 30000/1001 -b ' + str(optimal_bitrate) + ' -bt 4M -vcodec libx264'
 
-        makeMovieCommand = " ffmpeg -i %05d.jpg " + options + " -pass 1 -preset medium -an -ss 0 " + outputFile + " && \
-         ffmpeg -y -i %05d.jpg " + options + "  -pass 2 -preset slow -acodec libfaac -ac 2 -ar 44100 -ab 128k -ss 0 " + outputFile 
+        makeMovieCommand = " ffmpeg " + options + " -pass 1 -preset medium -an -ss 0 " + outputFile + " && \
+         ffmpeg " + options + "  -pass 2 -preset slow -acodec libfaac -ac 2 -ar 44100 -ab 128k -ss 0 " + outputFile 
 
         # for olympus om-d
         #makeMovieCommand = "ffmpeg -loglevel verbose  -i  %05d.jpg -r 25 -vcodec libx264 -s hd1080 '" + outputFile + "'"
@@ -90,7 +96,10 @@ class encoder_functions:
         subprocess.call(makeMovieCommand, shell=True)
                 
             
-    def makeMencoderMovieFromFiles(self,outputFile):
+    def makeMencoderMovieFromFiles(self,inputFolder,outputFile):
+
+        os.chdir(inputFolder)
+
         # http://mariovalle.name/mencoder/mencoder.html
         # see mencoder on desktop      
         
