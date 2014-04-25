@@ -7,17 +7,25 @@ from encoder_functions import encoder_functions
 
 class timelapse_revised:
     
-    videoExtension = ".mp4"
+    videoExtension = ".mov"
     symlinkFolder = 'symlinks'
     ignoreFolders = [symlinkFolder,'raw','render']
     movieParts = []
     directory = ""
+    codec = "libx264"
 
     
     def __init__(self,sysArgs):
         
         if (len(sysArgs) > 1):
+
+            # this directory
             self.directory = sysArgs[1]
+
+            # codec, libx264 for web , prores for editing
+            if sysArgs[2]:
+                self.codec = sysArgs[2]
+
             self.directory = self.directory.strip()
             if self.directory[0] == "'" and self.directory[-1] == "'":
                 self.directory = self.directory[1:-1]
@@ -92,7 +100,7 @@ class timelapse_revised:
                 print "self.directory does not exist"
 
         else:
-            print "\n  usage: python goProTimelapse2AVI.py  /path/to/files/\n"
+            print "\n  usage: python goProTimelapse2AVI.py  /path/to/files/ [codec (prores only supported) ]\n"
     
     def createMovieParts(self):
 
@@ -114,7 +122,7 @@ class timelapse_revised:
 
         for selected in listToRender:
             sourceSymlinks = os.path.join(os.path.dirname(selected['folder']), self.symlinkFolder)
-            encoder_functions().makeFFmpegMovieFromFiles(sourceSymlinks,selected['video'])
+            encoder_functions().makeFFmpegMovieFromFiles(sourceSymlinks,selected['video'],self.codec)
 
 
     def createSymlinks(self,symlinkPath):

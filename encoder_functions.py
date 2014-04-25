@@ -56,7 +56,7 @@ class encoder_functions:
     #     os.chdir(inputFolder)
     #     self.ffmpeg(null,outputFile) 
 
-    def makeFFmpegMovieFromFiles(self,inputFolder,outputFile):
+    def makeFFmpegMovieFromFiles(self,inputFolder,outputFile,codec):
 
         os.chdir(inputFolder)
         print "\n\nRendering all the files in " + inputFolder + "\n"
@@ -76,27 +76,34 @@ class encoder_functions:
         # list all possible internal presets/tunes for FFmpeg by specifying no preset or tune option at all:
         # ffmpeg -i input -c:v libx264 -preset -tune dummy.mp4
 
-        
-        # for gopro videos
-        #makeMovieCommand = "ffmpeg  -loglevel quiet  -i %05d.jpg -vb 6400k -vcodec libx264 -s hd1080 -v 0 \
-        #-flags +loop -cmp +chroma -partitions +parti4x4+partp8x8+partb8x8 -subq 5 -me_range 16 \
-        #-g 250 -keyint_min 25 -sc_threshold 40 -i_qfactor 0.71 '" + outputFile + "'"
+        if codec == 'prores':
 
-        options = '-y -i %05d.jpg -s ' + str(width) + 'x' + str(height) + ' -loglevel quiet -aspect 16:9 -r 30000/1001 -b ' + str(optimal_bitrate) + ' -bt 4M -vcodec libx264'
+            # for editing
+            makeMovieCommand = "ffmpeg -loglevel verbose  -i  %05d.jpg -r 25 -vcodec prores -profile:v 2 -s hd1080  '" + outputFile + "'"
 
-        makeMovieCommand = " ffmpeg " + options + " -pass 1 -preset medium -an -ss 0 " + outputFile + " && \
-         ffmpeg " + options + "  -pass 2 -preset slow -acodec libfaac -ac 2 -ar 44100 -ab 128k -ss 0 " + outputFile 
+        else:
 
-        # for olympus om-d
-        #makeMovieCommand = "ffmpeg -loglevel verbose  -i  %05d.jpg -r 25 -vcodec libx264 -s hd1080 '" + outputFile + "'"
-       
+            # for HD web videos
+            # makeMovieCommand = "ffmpeg  -loglevel quiet  -i %05d.jpg -vb 6400k -vcodec libx264 -s hd1080 -v 0 \
+            # -flags +loop -cmp +chroma -partitions +parti4x4+partp8x8+partb8x8 -subq 5 -me_range 16 \
+            # -g 250 -keyint_min 25 -sc_threshold 40 -i_qfactor 0.71 '" + outputFile + "'"
+
+            options = '-y -i %05d.jpg -s ' + str(width) + 'x' + str(height) + \
+            ' -loglevel info -hide_banner -aspect 16:9 -pix_fmt yuv420p -r 25 -b:v ' + \
+            str(optimal_bitrate) + '  -vcodec libx264 -s hd1080 -an '
+
+            makeMovieCommand = " ffmpeg " + options + " -pass 1 -preset slow -ss 0 " + outputFile + " && \
+             ffmpeg " + options + "  -pass 2 -preset slower -ss 0 " + outputFile 
+
+
+
 
 
         print makeMovieCommand
         subprocess.call(makeMovieCommand, shell=True)
                 
             
-    def makeMencoderMovieFromFiles(self,inputFolder,outputFile):
+    def makeMencoderMovieFromFiles(self,inputFolder,outputFile,codec):
 
         os.chdir(inputFolder)
 
